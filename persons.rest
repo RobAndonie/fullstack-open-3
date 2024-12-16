@@ -2,14 +2,14 @@
 GET http://localhost:3000/api/persons
 
 ###
-GET http://localhost:3000/api/persons/675ebae82ce91766dc7fc9f
+GET http://localhost:3000/api/persons/675fdb8fb21fb00edc95cc2
 
 ###
 POST http://localhost:3000/api/persons
 Content-Type: application/json
 
 {
-  "name": "Ada Lovelacy",
+  "name": "Ad",
   "number": "911-48184231321"
 }
 
