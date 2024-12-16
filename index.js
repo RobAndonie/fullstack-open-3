@@ -1,98 +1,57 @@
+require("dotenv").config();
+
 const express = require("express");
+const routes = require("./src/routes");
 const morgan = require("morgan");
 const cors = require("cors");
 const app = express();
+const Person = require("./models/person");
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static("dist"));
+
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms :body")
+);
 
 morgan.token("body", (req) => {
   return JSON.stringify(req.body);
 });
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static("dist"));
-app.use(
-  morgan(":method :url :status :res[content-length] - :response-time ms :body")
-);
-
-let phonebook = [
-  {
-    id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: "4",
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
-
 app.get("/", (req, res) => {
   res.send("Hello World");
-});
-
-app.get("/api/persons", (req, res) => {
-  res.json(phonebook);
-});
-
-app.get("/api/persons/:id", (req, res) => {
-  const id = req.params.id;
-  const person = phonebook.find((person) => person.id === id);
-  if (person) {
-    res.json(person);
-  } else {
-    res.status(404).end();
-  }
-});
-
-app.post("/api/persons", (req, res) => {
-  const body = req.body;
-
-  if (!body.name || !body.number) {
-    return res.status(400).json({
-      error: "Name or number is missing",
-    });
-  }
-
-  if (phonebook.find((person) => person.name === body.name)) {
-    return res.status(400).json({
-      error: "Name must be unique",
-    });
-  }
-
-  const person = {
-    id: Math.floor(Math.random() * 1000),
-    name: body.name,
-    number: body.number,
-  };
-
-  phonebook = phonebook.concat(person);
-  res.json(person);
-});
-
-app.delete("/api/persons/:id", (req, res) => {
-  const id = req.params.id;
-  phonebook = phonebook.filter((person) => person.id !== id);
-  res.status(204).end();
 });
 
 app.get("/info", (req, res) => {
   const date = new Date();
   res.send(
-    `<p>Phonebook has info for ${phonebook.length} people</p>
+    `<p>Phonebook has info for ${Person.length} people</p>
     <p>${date}</p>`
   );
 });
+
+app.use("/api/persons", routes);
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: "unknown endpoint" });
+};
+
+app.use(unknownEndpoint);
+
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return res.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return res.status(400).json({ error: "validation error" });
+  } else {
+    return res.status(500).json({ error: "internal server error" });
+  }
+};
+
+app.use(errorHandler);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server running on port ${process.env.PORT || 3000}`);
